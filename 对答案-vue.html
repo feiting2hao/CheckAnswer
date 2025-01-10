@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>对答案</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+  
+    .counterGroups {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr); /* 使用1fr使每列等宽 */
+      gap: 10px;
+      width: 100%; /* 确保宽度占满父容器 */
+    }
+  
+    .counterGroup {
+      display: flex; /* 使用Flexbox布局 */
+      align-items: stretch; /* 子元素垂直拉伸以填充高度 */
+      padding: 5px;
+      border: 2px solid #8c1aff; /* 紫蓝色边框 */
+      box-sizing: border-box;
+      height: 100px;
+
+      background-color:lightgreen;
+      border-radius: 25px;
+    }
+  
+    .num, .input, .counter {
+      padding: 5px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center; /* 水平居中 */
+      align-items: center; /* 垂直居中 */
+    }
+  
+    .num {
+      width: 5%;
+      padding: 15px;
+      background-color: #1e90ff; /* 道奇蓝 */
+      color: white;
+      border-radius: 50%; /* 圆形 */
+      font-weight: bold;
+      font-size: 30px;
+    }
+  
+    .input {
+      width: 90%;
+      background-color: lightblue;
+    }
+  
+    .counter {
+      width: 5%;
+      font-size: 40px;
+      padding: 20px;
+      background-color:#1e90ff;
+      color: white;
+      border: none;
+      border-radius: 50%; /* 圆形 */
+      cursor: pointer;
+      transition: background-color 0.3s ease; /* 平滑过渡效果 */
+    }
+
+    /* button - hover状态 */
+    .counter:hover {
+      background-color: #0074d9; /* 更深一点的蓝色 */
+    }
+
+    /* button - active状态 */
+    .counter:active {
+      background-color: #0047ab; /* 最深的蓝色 */
+    }
+  
+    /* 如果需要调整输入框的样式 */
+    .input input {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding-left: 5px;
+      border: 2px solid #1e90ff; /* 边框颜色与主色调一致 */
+      border-radius: 4px;
+      font-size: 50px;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+      
+    const app = createApp({
+        data() {
+          return {
+            counterGroups: [
+              /*{ id: 1, text: '', count: 0 }*/
+            ]
+          };
+        },
+        created(){
+          this.initCounterGroups()
+        },
+        methods:{
+          initCounterGroups(){
+            for(let i = 1 ; i<=40 ; i++){
+              this.counterGroups.push({ id: i,text: '', count: 0})
+            }
+          },
+          pressCounterButton(event,id){
+            if (event.button === 0) { // 左键点击
+              this.increCount(id);
+            } else if (event.button === 2) { // 右键点击
+              this.decreCount(id);
+            }
+          },
+          increCount(id){
+            const group = this.counterGroups.find(g => g.id === id);
+            if (group) {
+              group.count++;
+            }
+          },
+          decreCount(id){
+            const group = this.counterGroups.find(g => g.id === id);
+            if (group && group.count > 0) {
+              group.count--;
+            }
+          },
+          increCountergroup(){
+            this.counterGroups.push({ id: this.counterGroups.length+1, text:'', count:0})
+          }
+        }
+      })
+     
+    app.mount('#app')
+  </script>
+
+  <template id="app-template">
+
+    <div class="counterGroups">
+      <div v-for="counterGroup in counterGroups" :key='counterGroup.id' :id=" 'counterGroup' + counterGroup.id" class="counterGroup">
+        <span class="num" :id=" 'counterNum' + counterGroup.id ">{{counterGroup.id}}</span>
+        <input class="input" :id=" 'counterInput' + counterGroup.id " v-model="counterGroup.text" style="font-size: 70px;">
+        <!-- <span class="counter" :id=" 'counter' + counterGroup.id ">{{counterGroup.count}}</span>
+        <button class="increase" :id=" 'counterIncrease' + counterGroup.id " @click="increCount(counterGroup.id)">+</button>
+        <button class="decrease" :id=" 'counterDrcrease' + counterGroup.id " @click="decreCount(counterGroup.id)">-</button> -->
+        <button 
+        class="counter" 
+        :id=" 'counter' + counterGroup.id " 
+        @mousedown="(event) => pressCounterButton(event, counterGroup.id)" 
+        @contextmenu.prevent> {{counterGroup.count}} </button>
+      </div>
+    </div>
+
+    <div class="controllors">
+      <button @click="increCountergroup">增加一组</button>
+    </div>
+
+  </template>
+
+  <script>
+    // 将模板内容插入到 #app 中
+    document.getElementById('app').innerHTML = document.querySelector('#app-template').innerHTML;
+  </script>
+
+</body>
+</html>
+
+
