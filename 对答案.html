@@ -1,282 +1,195 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对答案</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+        .counterGroups {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-gap: 10px;
+            max-width: 100%; 
+            padding: 5px 16px;
         }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px;
+        .counterGroup {
+            display: grid;
+            grid-template-columns: 40px auto 30px;
+            align-items: stretch;
+            justify-items: stretch;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 10px;
         }
-        .counter-group {
-            border: 5px solid #ccc;
-            padding: 1px;
-            width: calc(25% - 15px);
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-        }
-        .counter-group span:first-child {
-            margin-right: 1px;
+        .countergroupNum {
             font-size: 30px;
-            font-weight: bold
-        }
-        .counter-group input[type="text"] {
-            font-size: 30px;
-            width: 200px; /* Adjusted text box length */
-            box-sizing: border-box;
-            margin-right: 1px;
-        }
-        .counter-group div {
-            margin-right: 1px;
-        }
-        .counter-group button {
-            font-size: 20px;
-            margin-right: 10px;
-            padding: 5px 5px;
-        }
-        .global-controls {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .global-controls button {
-            font-size: 20px;
-            margin: 0 5px;
-            padding: 10px 20px;
-        }
-        .file-input-container {
-            margin-top: 10px;
-        }
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1; /* Sit on top */
-            left: 0;
-            top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgb(0,0,0); /* Fallback color */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto; /* 15% from the top and centered */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 75%; /* Could be more or less, depending on screen size */
-            max-height: 80%;
-            overflow-y: auto;
             font-weight: bold;
-            font-size: 70px;
+            display: flex;
+            justify-content: center;  /* 水平居中 */
+            align-items: center;      /* 垂直居中 */;
         }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
+        .countergroupText {
+            height: 135px;
+            font-family: sans-serif;
+            font-size: 100px;
+            width: 100%;
+            font-weight: 600;  /* 600相当于加粗（范围：100-900） */
         }
     </style>
 </head>
-<body>
-    <div class="container" id="container"></div>
-    <div class="global-controls">
-        <button onclick="showModal()">显示所有内容</button>
-        <button onclick="addCounterGroup()">添加计数器组</button>
-        <button onclick="clearAllTextFields()">清空所有文本框</button>
-        <button onclick="resetAllCounters()">重置所有计数器</button>
-        <button onclick="saveData()">保存数据</button>
-        <label for="load-file">加载数据:</label>
-        <input type="file" id="load-file" accept=".json" onchange="loadDataFromFile(event)">
-    </div>
 
-    <!-- The Modal -->
-    <div id="myModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <p id="modal-text"></p>
+
+<script type="module">
+  import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+
+  const app = createApp({
+    data() {
+      return {
+        counterGroups: [
+            // { id: 1, text: ' ', count: 0}
+        ],
+        hasUnsavedChanges: false,
+        initialSnapshot: null
+      }
+      
+    },
+    created(){
+        this.initializecounterGroups()
+        this.initialSnapshot = JSON.stringify(this.counterGroups)
+    },
+    methods:{
+        initializecounterGroups(){
+            for (let i = 1; i <= 40; i++) {
+                this.counterGroups.push(
+                    {
+                    id: i ,
+                    text: '', 
+                    count: 0
+                    }
+                );
+            }
+        },
+        increCount(counterGroup){
+            counterGroup.count++
+        },
+        decreCount(counterGroup){
+            if(counterGroup.count > 0){
+                counterGroup.count--
+            }
+        },
+        addcounterGroup(){
+            this.counterGroups.push({
+                id: this.counterGroups.length + 1,
+                text: '',
+                count: 0
+            })
+        },
+        save(){
+            try {
+                // 创建JSON数据
+                const data = JSON.stringify(this.counterGroups, null, 2)
+                
+                // 创建下载链接
+                const blob = new Blob([data], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                
+                // 创建虚拟下载按钮
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${new Date().toISOString().slice(0,10)}.json`
+                document.body.appendChild(a)
+                a.click()
+                
+                // 清理资源
+                URL.revokeObjectURL(url)
+                document.body.removeChild(a)
+
+                // 更新状态
+                this.hasUnsavedChanges = false
+                this.initialSnapshot = JSON.stringify(this.counterGroups)
+            } 
+            catch (error) {
+                alert('保存失败：' + error.message)
+            }
+        },
+        load(){
+            return new Promise((resolve) => {
+                // 创建文件输入框
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = '.json'
+                
+                // 文件选择处理
+                input.onchange = async (e) => {
+                const file = e.target.files[0]
+                if (!file) return
+
+                try {
+                    // 读取文件内容
+                    const text = await file.text()
+                    const data = JSON.parse(text)
+                    
+                    // 验证数据结构
+                    if (!this.validateData(data)) {
+                    throw new Error('文件格式不正确')
+                    }
+                    
+                    // 更新数据
+                    this.counterGroups = data
+                } catch (error) {
+                    alert('加载失败：' + error.message)
+                }
+                }
+                
+                input.click()
+            })
+        },
+        validateData(data) {
+            return (
+                Array.isArray(data) &&
+                data.every(item => 
+                typeof item?.id === 'number' &&
+                typeof item?.text === 'string' &&
+                typeof item?.count === 'number'
+                )
+            )
+        },
+        checkChanges() {
+            this.hasUnsavedChanges = 
+                JSON.stringify(this.counterGroups) !== this.initialSnapshot
+        }
+    },
+    watch: {
+        counterGroups: {
+            handler() {
+                if (this.initialSnapshot) this.checkChanges()
+            },
+            deep: true
+        }
+    },
+    mounted() {
+        window.addEventListener('beforeunload', this.handleBeforeUnload)
+    },
+    beforeUnmount() {
+        window.removeEventListener('beforeunload', this.handleBeforeUnload)
+    }
+  })
+  app.mount('#app')
+</script>
+
+<div id="app">
+    <div class="counterGroups">
+        <div class="counterGroup" v-for="counterGroup in counterGroups" :key="counterGroup.id">
+            <div class="countergroupNum">{{counterGroup.id}}</div>
+            <input class="countergroupText" type="text" v-model="counterGroup.text" >
+            <button class="countergroupCount" @click="increCount(counterGroup)" @contextmenu.prevent="decreCount(counterGroup)">{{counterGroup.count}}</button>
+
         </div>
     </div>
 
-    <script>
-        let counterGroups = [];
-        let isDataSaved = true;
-
-        function createCounterGroup(index) {
-            const container = document.getElementById('container');
-            const counterGroup = document.createElement('div');
-            counterGroup.className = 'counter-group';
-            counterGroup.innerHTML = `
-                <span>${index + 1}.</span>
-                <input type="text" id="textInput-${index}" style="font-size: 30px;">
-                <div>计数: <span id="countDisplay-${index}">0</span></div>
-                <button onclick="increment(${index})">+</button>
-                <button onclick="decrement(${index})">-</button>
-                <button onclick="resetCounter(${index})">R</button>
-                <button onclick="clearTextField(${index})">C</button>
-            `;
-            container.appendChild(counterGroup);
-            counterGroups.push({ textField: `textInput-${index}`, countDisplay: `countDisplay-${index}`, count: 0 });
-        }
-
-        function increment(index) {
-            counterGroups[index].count++;
-            document.getElementById(counterGroups[index].countDisplay).textContent = counterGroups[index].count;
-            isDataSaved = false;
-        }
-
-        function decrement(index) {
-            if (counterGroups[index].count > 0) {
-                counterGroups[index].count--;
-                document.getElementById(counterGroups[index].countDisplay).textContent = counterGroups[index].count;
-                isDataSaved = false;
-            }
-        }
-
-        function resetCounter(index) {
-            counterGroups[index].count = 0;
-            document.getElementById(counterGroups[index].countDisplay).textContent = counterGroups[index].count;
-            isDataSaved = false;
-        }
-
-        function clearTextField(index) {
-            document.getElementById(counterGroups[index].textField).value = '';
-            isDataSaved = false;
-        }
-
-        function addCounterGroup() {
-            createCounterGroup(counterGroups.length);
-            isDataSaved = false;
-        }
-
-        function clearAllTextFields() {
-            counterGroups.forEach(group => {
-                document.getElementById(group.textField).value = '';
-            });
-            isDataSaved = false;
-        }
-
-        function resetAllCounters() {
-            counterGroups.forEach(group => {
-                group.count = 0;
-                document.getElementById(group.countDisplay).textContent = group.count;
-            });
-            isDataSaved = false;
-        }
-
-        function saveData() {
-            const data = counterGroups.map(group => ({
-                textFieldValue: document.getElementById(group.textField).value,
-                count: group.count
-            }));
-            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
-            a.download = `counter-data-${timestamp}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            alert('数据已保存！');
-            isDataSaved = true;
-        }
-
-        function loadDataFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-
-                    // Clear existing groups and recreate them based on loaded data
-                    document.getElementById('container').innerHTML = '';
-                    counterGroups = [];
-                    data.forEach((item, index) => {
-                        createCounterGroup(index);
-                        document.getElementById(counterGroups[index].textField).value = item.textFieldValue;
-                        counterGroups[index].count = item.count;
-                        document.getElementById(counterGroups[index].countDisplay).textContent = item.count;
-                    });
-
-                    alert('数据已加载！');
-                    isDataSaved = true;
-                } catch (error) {
-                    alert('无法解析文件内容，请确保文件格式正确。');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function showModal() {
-            const modal = document.getElementById("myModal");
-            const modalText = document.getElementById("modal-text");
-            let textContent = '';
-
-            counterGroups.forEach((group, index) => {
-                const textFieldValue = document.getElementById(group.textField).value;
-                textContent += `${index + 1}. ${textFieldValue}\n`;
-                textContent += `     `
-            });
-
-            modalText.textContent = textContent;
-            modal.style.display = "block";
-        }
-
-        function closeModal() {
-            const modal = document.getElementById("myModal");
-            modal.style.display = "none";
-        }
-
-
-        window.addEventListener('beforeunload', function (e) {
-            if (!isDataSaved) {
-                e.preventDefault(); // Cancel the event
-                e.returnValue = ''; // Legacy requirement for Chrome <= 53 and Safari
-                return ''; // Legacy requirement for Chrome <= 53 and Safari
-            }
-        });
-
-        // Get the <span> element that closes the modal
-            const closeSpan = document.getElementsByClassName("close")[0];
-
-        // When the user clicks on <span> (x), close the modal
-        closeSpan.onclick = function() {
-            closeModal();
-        }
-
-        // When the user clicks anywhere outside of the modal, close it
-        window.onclick = function(event) {
-            const modal = document.getElementById("myModal");
-            if (event.target == modal) {
-                closeModal();
-            }
-        }
-
-
-        // Initialize with 40 counter groups
-        for (let i = 0; i < 40; i++) {
-            createCounterGroup(i);
-        }
-    </script>
-</body>
-</html>
-
-
-
+    <div class="controllBar">
+        <button @click="load">加载</button>
+        <button @click="save">保存</button>
+        <button @click="addcounterGroup">增加一组</button>
+    </div>
+</div>
