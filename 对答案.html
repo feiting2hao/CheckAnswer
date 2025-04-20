@@ -5,16 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>对答案</title>
     <style>
+        body{
+            background-image: linear-gradient(rgba(255,255,255,0.7),rgba(255,255,255,0.7)),
+                url(background2.png);
+            background-size: 100% 100%;
+            /* opacity: 0.5; */
+        }
         .counterGroups {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
             grid-gap: 10px;
             max-width: 100%; 
             padding: 5px 16px;
+            box-sizing: border-box;
         }
         .counterGroup {
             display: grid;
-            grid-template-columns: 40px auto 30px;
+            box-sizing: border-box;
+            grid-template-columns: auto 1fr auto;
+            gap: 0;
             align-items: stretch;
             justify-items: stretch;
             border: 1px solid #ccc;
@@ -22,18 +31,110 @@
             border-radius: 10px;
         }
         .countergroupNum {
-            font-size: 30px;
-            font-weight: bold;
+            font-family: "Arial", sans-serif;  /* 简洁易读 */
+            font-size: 25px;                   /* 不喧宾夺主 */
+            font-weight: 600;                  /* 中等加粗 */
+            padding: 5px;
+            /* margin: 5px; */
+            color: #2A6FDB; 
+            box-sizing: border-box;
             display: flex;
             justify-content: center;  /* 水平居中 */
             align-items: center;      /* 垂直居中 */;
         }
         .countergroupText {
-            height: 135px;
-            font-family: sans-serif;
-            font-size: 100px;
+            height: 90px;
+            font-family: "Segoe UI", sans-serif;
+            font-size: 70px;
+            color: #333;                         /* 深色保证可读性 */
+            background: #F8F9FA;                 /* 浅灰背景减少视觉疲劳 */
+            border: 1px solid #DEE2E6;           /* 柔和边框 */
+            /* padding: 8px 12px; */
+            margin: 0 -1px;
             width: 100%;
+            /* height: 100%; */
+            box-sizing: border-box;
             font-weight: 600;  /* 600相当于加粗（范围：100-900） */
+        }
+        .countergroupCount {
+            font-size: 30px;
+            font-weight: bold;
+            font-family: "Roboto", sans-serif;    /* 现代感强 */
+            color: white;                         /* 高对比度 */
+            background: #2A6FDB;                  /* 主色调 */
+            border: none;
+            padding: 0px;
+            border-radius: 0px 6px 6px 0px;                   /* 圆角按钮 */
+            cursor: pointer;
+            min-width: 40px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;  /* 水平居中 */
+            align-items: center;
+        }
+        .countergroupCount:hover {
+            background: #1E5DB6;                  /* 加深10% */
+        }
+        .countergroupCount:active {
+            background: #124191;
+        }
+        .countergroupCount--warning {
+            background: #FF6B35 ;  /* 主橙色 */
+            transition: 0.25s;
+        }
+        .countergroupCount--warning:hover {
+            background: #E55627 ; /* 加深10% */
+        }
+        .countergroupCount--warning:active {
+            background: #CC3D15 ;
+        }
+
+        .showallModal{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .showallmodalContent {
+            background: white;
+            width: 80%;
+            height: 80%;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-content: center;
+            overflow-y: auto;
+        }
+        .content{
+            font-size: 70px;
+            line-height: 80px;
+            font-family: 'Segoe UI',Arial,sans-serif;  
+            font-weight: 500;
+        }
+        .closeshowAll {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 65px;
+            color: #ccc;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0 10px;
+            line-height: 1;
+        }
+        .closeshowAll:hover{
+            color: #929292;
         }
     </style>
 </head>
@@ -48,14 +149,19 @@
         counterGroups: [
             // { id: 1, text: ' ', count: 0}
         ],
-        hasUnsavedChanges: false,
-        initialSnapshot: null
+        isDirty: false,
+        initialData: [],
+        isShowAll: false
       }
       
     },
     created(){
         this.initializecounterGroups()
-        this.initialSnapshot = JSON.stringify(this.counterGroups)
+        this.initialData = JSON.stringify(this.counterGroups)  // 保存初始状态
+        window.addEventListener('beforeunload', this.handleBeforeUnload)
+    },
+    beforeUnmount() {
+        window.removeEventListener('beforeunload', this.handleBeforeUnload)
     },
     methods:{
         initializecounterGroups(){
@@ -89,6 +195,22 @@
                 // 创建JSON数据
                 const data = JSON.stringify(this.counterGroups, null, 2)
                 
+                 // 创建北京时间字符串
+                const now = new Date()
+                // 转换为北京时间（UTC+8）
+                const beijingTime = new Date(now.getTime() + 8 * 3600 * 1000)
+                // 格式化日期组件
+                const pad = n => n.toString().padStart(2, '0')  // 补零函数
+                const timeString = [
+                    beijingTime.getUTCFullYear(),
+                    pad(beijingTime.getUTCMonth() + 1), // 月份从0开始
+                    pad(beijingTime.getUTCDate()),
+                    '_',
+                    pad(beijingTime.getUTCHours()),
+                    pad(beijingTime.getUTCMinutes()),
+                    pad(beijingTime.getUTCSeconds())
+                ].join('')
+
                 // 创建下载链接
                 const blob = new Blob([data], { type: 'application/json' })
                 const url = URL.createObjectURL(blob)
@@ -96,7 +218,7 @@
                 // 创建虚拟下载按钮
                 const a = document.createElement('a')
                 a.href = url
-                a.download = `${new Date().toISOString().slice(0,10)}.json`
+                a.download = `${timeString}.json`
                 document.body.appendChild(a)
                 a.click()
                 
@@ -105,8 +227,8 @@
                 document.body.removeChild(a)
 
                 // 更新状态
-                this.hasUnsavedChanges = false
-                this.initialSnapshot = JSON.stringify(this.counterGroups)
+                this.isDirty = false
+                this.initialData = data  // 更新初始状态
             } 
             catch (error) {
                 alert('保存失败：' + error.message)
@@ -121,28 +243,36 @@
                 
                 // 文件选择处理
                 input.onchange = async (e) => {
-                const file = e.target.files[0]
-                if (!file) return
+                    const file = e.target.files[0]
+                    if (!file) return
 
-                try {
-                    // 读取文件内容
-                    const text = await file.text()
-                    const data = JSON.parse(text)
-                    
-                    // 验证数据结构
-                    if (!this.validateData(data)) {
-                    throw new Error('文件格式不正确')
+                    try {
+                        // 读取文件内容
+                        const text = await file.text()
+                        const data = JSON.parse(text)
+                        
+                        // 验证数据结构
+                        if (!this.validateData(data)) {
+                        throw new Error('文件格式不正确')
+                        }
+                        
+                        // 更新数据
+                        this.counterGroups = data
+                        this.isDirty = false
+                        this.initialData = JSON.stringify(data)  // 更新初始状态
+                    } catch (error) {
+                        alert('加载失败：' + error.message)
                     }
-                    
-                    // 更新数据
-                    this.counterGroups = data
-                } catch (error) {
-                    alert('加载失败：' + error.message)
-                }
                 }
                 
                 input.click()
             })
+        },
+        handleBeforeUnload(event) {
+            if (this.isDirty) {
+                event.preventDefault()
+                event.returnValue = '您有未保存的更改，确定要离开吗？'
+            }
         },
         validateData(data) {
             return (
@@ -157,12 +287,18 @@
         checkChanges() {
             this.hasUnsavedChanges = 
                 JSON.stringify(this.counterGroups) !== this.initialSnapshot
+        },
+        showAll(){
+            this.isShowAll = true
+        },
+        closeshowAll(){
+            this.isShowAll = false
         }
     },
     watch: {
         counterGroups: {
-            handler() {
-                if (this.initialSnapshot) this.checkChanges()
+            handler(newVal) {
+                this.isDirty = JSON.stringify(newVal) !== this.initialData
             },
             deep: true
         }
@@ -182,14 +318,22 @@
         <div class="counterGroup" v-for="counterGroup in counterGroups" :key="counterGroup.id">
             <div class="countergroupNum">{{counterGroup.id}}</div>
             <input class="countergroupText" type="text" v-model="counterGroup.text" >
-            <button class="countergroupCount" @click="increCount(counterGroup)" @contextmenu.prevent="decreCount(counterGroup)">{{counterGroup.count}}</button>
+            <button class="countergroupCount" :class="{ 'countergroupCount--warning': counterGroup.count >= 7 }" @click="increCount(counterGroup)" @contextmenu.prevent="decreCount(counterGroup)">{{counterGroup.count}}</button>
 
         </div>
+    </div>
+
+    <div v-if="isShowAll" class="showallModal" >
+        <div class="showallmodalContent">
+            <div v-for="counterGroup in counterGroups" :key="counterGroup.id" class="content">{{`${counterGroup.id}.${counterGroup.text}\u00A0\u00A0`}}</div>
+        </div>
+        <button @click="closeshowAll" class="closeshowAll">&times</button>
     </div>
 
     <div class="controllBar">
         <button @click="load">加载</button>
         <button @click="save">保存</button>
         <button @click="addcounterGroup">增加一组</button>
+        <button @click="showAll">显示全部</button>
     </div>
 </div>
